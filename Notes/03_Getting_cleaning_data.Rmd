@@ -1,0 +1,583 @@
+---
+title: "Getting and Cleaning Data"
+author: "Nathan W. Van Bibber"
+date: "2/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Week 1
+
+## Tidy Data
+1. Variables should be in columns (one per variable)  
+2. Observations should be in rows (again one per observation)  
+3. Have one table for each "kind" of variables <I'm not sure what this means>  
+4. Multiple tables should be likned with an "id" column  
+
+Other tips include:
+* variable names should be included in top row of each file  
+    + Make variable names human readable (error on side of being more explicit/ more verbose)  
+* Save data in one file per table  
+    + i.e. don't have multiple spreadsheet "tabs" within Excel file  
+    
+### The code book
+A word/text/markdown file that gives more information about variables including:
+1. Variables (including the units)  
+2. Summary choices made (i.e. mean or median)  
+3. Study design  
+    + through description of how data were collected  
+    
+### Instruction list
+A commputer script (with no parameters) where the input is raw data and output is tidy data.  Should be an exact recipe that will allow the data set to be reproduced if the same raw data were put back in. 
+    + be as explicit as possible for parts that cannot be included in script  
+    + include other software version numbers, specific parameters used, etc  
+    
+
+## Downloading files
+
+```{r}
+getwd()
+# setwd("./data")
+# setwd("../") # set wd to one level up
+
+# check for a "data" directory and create it if it does not exist
+if (!file.exists("data")) {
+    dir.create("data")
+}
+```
+
+To download a file from online:
+1. copy the link address to the file
+2. big files may take a while to download
+3. Include the date you originally downloaded the file
+4. On Mac, for *https* url need to set `method = "curl"`
+
+```{r}
+fileUrl <- "https://example..."
+download.file(fileUrl, destfile = "./data/<filename.csv>")
+list.files("./data")
+
+#be sure to include the date you downloaded the file
+dataDownloaded <- date()
+dataDownloaded
+```
+
+
+## Reading local flat files 
+
+`read.table()` is the most common
+- most robust  
+- allows for most flexibility  
+- reads data into RAM (be mindful of data size!)  
+    + not best way to read large data sets into R  
+- Also can be slow and requires more parameters  
+    + *file, header, sep, row.names, nrows*  
+    + *na.strings, skip, quote = ""* (can resolve problems with "s in data)  
+
+```{r}
+?read.table
+```
+
+
+## Reading Excel files
+
+```{r}
+#library(xlsx)
+cameraData <- read.xlsx("<filePATH>", sheetIndex = 1, header = TRUE)
+head(cameraData)
+
+write.xlsx
+```
+
+Note: `xlsx` and `XLConnect` have a JAVA dependency that is hard to deal with.
+
+Packages without java dependency: `readxl`, `writexl`, `openxlsx`, & `tidyxl`
+
+
+## Reading XML
+XML = E**x**tessible **M**arkup **L**anguage
+- used to store structured data  
+- basis of most web scraping  
+    + Tags correspond to general labels: start, end
+    + Attrributes are components of the label
+
+```{r}
+# Note: RCurl::getURL() needed to parse https docs
+library(RCurl)
+library(XML)
+fileUrl <- "https://www.w3schools.com/xml/simple.xml"
+curlURL <- getURL(fileUrl)
+
+doc <- htmlTreeParse(curlURL, useInternalNodes = TRUE)
+rootNode <- xmlRoot(doc)
+
+xmlName(rootNode)
+xmlName(rootNode[[1]][[1]])
+
+names(rootNode)
+names(rootNode[[1]][[1]])
+
+rootNode[[1]][[1]][[1]]
+rootNode[[1]][[1]][[1]][[1]]
+
+# gets all <name> nodes within rootNode, sends them to function xmlValue
+menuItems <- xpathSApply(rootNode, "//name", xmlValue)
+
+prices <- xpathSApply(rootNode, "//price", xmlValue)
+```
+
+XPath is another language used to access a specific component of the XML doc  
+- `/node`: Top level node
+- `//node`: Node at any level, 
+    + e.g., `//name` finds all <name> nodes, no matter where in the document
+- `node[@attr-name]`: Node with an attribute name, 
+    + e.g., `name[@length]` returns <name> nodes that have an attribute *length*
+- `node[@att-name='bob']`: Node with an attriubte with a given value, 
+    + e.g., `name[@length='7']` returns <name> nodes with attribute length=“7”
+
+```{r}
+# this is working as of March 5, 2020!!
+fileUrl_2 <- "https://www.espn.com/nfl/team/_/name/bal/baltimore-ravens"
+curlURL_2 <- getURL(fileUrl_2)
+doc2 <- htmlTreeParse(curlURL_2, useInternalNodes = TRUE)
+scores <- xpathSApply(doc, "//div[@class='score']",xmlValue)
+teams <- xpathSApply(doc, "//div[@class='game-info']",xmlValue)
+scores
+teams
+```
+
+## Reading JSON
+JSON = Javascript Object Notation  
+- common for APIs  
+- similar to XML but different syntax/format  
+
+```{r}
+library(jsonlite)
+jsonData <- fromJSON("https://api.github.com/users/vanbibn/repos")
+names(jsonData)
+names(jsonData$owner)
+jsonData$owner$login
+
+# Writing data to JSON
+myjson <- toJSON(iris, pretty = TRUE)
+cat(myjson)
+```
+
+
+## data.table package
+`data.table` is similar to dataframes but faster and more memmory efficient
+- inherits from `data.table`  
+    + all functions that accept `data.frame` work on `data.table`  
+- written in C so its much faster  
+    + subsetting, group, and updating  
+    
+```{r}
+library(data.table)
+?data.table
+DF <- data.frame(x=rnorm(9), y=rep(c("a","b","c"), each=3), z=rnorm(9))
+head(DF,3)
+
+DT <- data.table(x=rnorm(9), y=rep(c("a","b","c"), each=3), z=rnorm(9))
+head(DT,3)
+
+tables()
+DT[2,]
+DT[DT$y=="a"]
+
+```
+    
+Subsetting with only 1 index will subset based on rows  
+
+```{r}
+# subsetting with only 1 index subsets based on rows
+DT[c(3,4)]  #rows 3 and 4
+
+# subsetting columns different!
+DT[,c(2,3)] #columns 2 and 3
+DT[,list(mean(x),sum(z))]  #returns mean of col x and sum of col z
+DT[,table(y)]
+
+```
+
+Add new columns quickly and efficiently  
+- does not copy to a new data frame, just adds new column  
+    + use `copy()` to explicitly create a copy of the data frame if you want to mutate one copy without affecting the other!  
+- can preform multi-step functions to create new variables  
+    + group functions with "{}"  
+    + separate functions with ";"  
+- plyr-like operations  
+
+```{r}
+DT[,w:=z^2]  # new col w = z value squared
+DT2 <- copy(DT)  # makes a new copy of the DT
+DT3 <- DT2       # does not make a new copy of the DT
+DT2[, y:= 2]     # changes DT2 and DT3!
+head(DT,3)
+head(DT2,3)
+head(DT3,3)
+
+# multi-step functions to create a new variable
+DT[, m:= {tmp <- (x + z); log2(tmp + 5)}]
+
+# plyr-like operations
+DT[, a:= x>0] # a is column of T and F values
+DT[, b:= mean(x+w), by=a] 
+    # takes mean when a=T (1.310) and assigns to col b everywhere a=T
+    # takes mean when a=F (-0.446) and assigns to col b everywhere a=F
+```
+
+Special variables:  
+- `.N` =  number of times a particular group appears  
+- Keys allow to subset and sort DT faster than can do with a data frame  
+    + facilitate Joins between data tables  
+- `fread()` reads tables in faster than `read.table()`  
+
+
+
+# Week 2
+
+## Reading from mySQL
+
+1. Install mySQL on your computer (http://dev.mysql.com/doc/refman/5.7/en/installing.html)
+2. `install.packages("RMySQL")`
+
+https://cran.r-project.org/web/packages/RMySQL/RMySQL.pdf
+
+**Dont forget to close the connection**
+
+## Reading from HDF5
+
+
+## Reading from the Web
+
+**Web scraping** = programatically extraction data from the HTML code of websites
+
+### Getting Data with `readLines()`
+
+```{r}
+con = url("https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en")
+htmlCode <- readLines(con)
+close(con)
+substr(htmlCode, start = 1, stop = 1000)
+
+class(htmlCode)   # character vector
+length(htmlCode)  # num of elements in the vector
+nchar(htmlCode)   # num characters in each element of the vector
+```
+
+### Parsing with XML
+more convenient than using readLines()
+- helps to know **XPath**  
+
+```{r}
+library(RCurl)
+library(XML)
+url <- "https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en"
+curl_data <- getURL(url)
+html <- htmlTreeParse(curl_data, useInternalNodes = TRUE)
+
+xpathSApply(html, "//title", xmlValue)
+xpathSApply(html, "//a[@class='gsc_a_ac gs_ibl']", xmlValue)
+```
+
+Or using `GET` from the `httr` pagkage
+
+```{r}
+library(httr)
+html2 <- GET(url)
+content2 <- content(html2, as = "text")
+parsedHtml <- htmlParse(content2, asText = TRUE)
+xpathSApply(parsedHtml, "//title", xmlValue)
+```
+
+### Using handles
+A handle is a way of caching a URL and login, along with information such as cookies. So it represents a web session. This is important if you need to access the URL again without re-authenticating, or having the cookies overwritten. A handle will apply to everything on a site that is defined as being within a single web session. That generally (but not always) means all subpaths below the path you pass to the handle, and generally (but not always) excludes anything outside of that path, and its children.
+
+Note that, as far as I can tell, authentication does not happen with the handle function. You first define a handle, and then use GET to authenticate, using the handle. But because the handle can retain cookies, subsequent use of that handle will not require re-authentication.
+
+
+## Reading from APIs 
+API = Application Programming Interfaces
+
+### Creating an application
+First, create an account. This usually means a developer account, beyond or in addition to a user account. Then you create an application.
+
+My notes on creating an application:
+- The Name must be unique across all Twitter users (ie.“Test” won't work)
+- The description must be at least 10 characters.
+- After your app is created, click the “API Keys” tab", and click on the “Create token access” button. It may take a little while, but eventually this page will show “Access token” and “Access token secret” fields.
+
+After account is created:
+- The four values you want are under the “API Keys” tab of your application.
+- The video's “consumer key” is “Access token”
+- The video's “consumer secret” is “Access token secret”
+
+## Reading from Other sources
+
+Best way to find out if the R package exists is to Google it!
+    + “<data storage mechanim> R package” (e.g., “MySQL R package”)
+    
+Interacting more directly with files:
+- file: open a connection to a text file
+- url: open a connection to a url
+- gzfile: open a connection to a .gz file
+- bzfile: open a connection to a .bz2 file
+- read.fwf hint-hint-wink-wink: Reads from a fixed-width file
+- ?connections for more information
+
+**Remember to close connections**
+
+Foreign packages: loads data from Minitab, S, SAS, SPSS, Stata, Systat
+- read.arff (Weka)
+- read.dta (Stata)
+- read.mtp (Minitab)
+- read.octave (Octave)
+- read.spss (SPSS)
+- read.xport (SAS)
+
+See the help page for more details: http://cran.r-project.org/web/packages/foreign/foreign.pdf
+
+
+# Week 3
+
+## Subsetting and sorting
+
+Review:
+```{r}
+set.seed(13435)
+X <- data.frame("var1"=sample(1:5), "var2"=sample(6:10), "var3"=sample(11:15))
+X <- X[sample(1:5),]
+X$var2[c(1,3)] = NA
+
+# Logical: AND and OR
+X[X$var1 >= 3 & X$var3 > 11,]
+X[X$var1 >= 3 | X$var3 > 11,]
+
+```
+
+
+The `which()` function gives the TRUE indices of a logical object. The presence of NA values in var2 will cause issues when indexing as before, but using `which()` will ignore the NA values.
+
+```{r}
+X[X$var2 > 8,]
+X[which(X$var2 > 8),] # ingores indices with NA values
+```
+
+
+`sort()` will sort vectors and can be applied to sort single columns (variables) of a data frame. 
+`order()` will order the entire data
+
+Similarily, the `arrange()` function from the *plyr* package will reorder a data frame by its columns
+
+Adding rows and columns with `cbind()` and `rbind()`:
+
+```{r}
+# create a duplicate of the X df to see if following operations copy or mutate 
+X_orig <- X  
+X$var4 <- rnorm(5)
+
+# a new df is created and reassigned to X because X_orig did not change
+X   
+X_orig
+
+X <- cbind(X, var5=rnorm(5))
+```
+
+
+## Summarizing Data
+
+`head()`
+`tail()`
+`summary()` will give some information about every variable
+`str()` gives info on the structure of the data frame
+`quantile()` look at variability in quantitative variables
+`table()` use the argument `useNA = "ifany"` to count the number of missing values as well
+
+```{r}
+summary(X)
+str(X)
+quantile(X$var5)
+
+table(X$var2, useNA = "ifany")
+
+```
+
+
+`is.na()`
+`sum()`
+`any()`
+`all()`
+`colSums()`
+
+```{r}
+sum(is.na(X$var2))  # how many NA values?
+any(is.na(X$var2))  # are there any missing values?
+all(X$var5 > 0)     # are all values in var5 greater than 0?
+colSums(is.na(X))   # test how many NA values are in each column
+```
+
+`%in%` returns a logical vector indicating if there is a match or not for its left operand
+
+```{r}
+table(X$var1 %in% c("1"))
+X[X$var2 %in% c("7")]
+```
+
+Cross tabs
+`xtab()` creates a contingency table from cross-classifying factors in a df
+
+```{r}
+data("UCBAdmissions")
+df <- as.data.frame(UCBAdmissions)
+summary(df)
+
+xt <- xtabs(Freq ~ Gender + Admit, data = df)
+xt
+```
+
+Size of a data set
+`object.size()`
+
+```{r}
+fakeData <- rnorm(1e5)
+object.size(fakeData)
+
+print(object.size(fakeData),units = "Mb")
+```
+
+## Creating new variables
+
+*Common transformations*
+`abs(x)` absolute value
+`sqrt(x)` square root
+`ceiling(x)` round value up to next whole number, so ceiling(3.1) is 4
+`floor(x)` round value down to next whole number, so floor (3.9) is 3
+`round(x, digits=n)` rounds to n digits, round(3.457, digits=2) is 3.46
+`signif(x, digits=n)`: signif(3.475,digits=3) is 3.5
+`cos(x)`, sin(x), etc.
+`log(x)`: natural logarithm
+`log2(x)`, log10(x): other common logarithms
+`exp(x)`: exponentiating x
+
+See **Hmisc** package for cutting (cut2)
+
+## Reshaping Data
+
+First load the `reshape2` package
+`melt()`
+`dcast()`
+
+```{r}
+library(reshape2)
+
+```
+
+
+## dplyr Tidyverse Package 
+The tidyverse enhanses data frames with **tibbles** for ease of analysis.
+
+Advantages of Tibbles:
+* All Tidyverse packages support tibbles  
+    + makes it easy to string together functions from different Tidyverse packages without intermediate data conversions  
+* Tibbles print in a cleaner format than data frames
+* Tibble creation functions make fewer assumptions about your data
+    + e.g. doesn't assume all character vectors are factors (usually overriden)
+    + does not mess with variable or row names either
+
+
+The dplyr package assumes tidy data  
+For all dplyr functions:
+* First argument is a data frame
+* Subsequent arguments describe what to do with it
+    + can refer to column namess directly without needing to use $
+* result is a new data frame
+
+`select()`
+`filter()`
+`arrange()`
+`rename()`
+`mutate()`
+`summarise()`
+`group_by()`
+`%>%` pipeline operator
+
+```{r}
+library(dplyr)
+
+starwars
+dim(starwars)
+class(starwars)
+names(starwars)
+
+select(starwars, name, homeworld:starships)
+select(starwars, -(height:gender))  # all but (exclude) vars in this range
+filter(starwars, homeworld=="Tatooine")
+arrange(filter(starwars, homeworld=="Tatooine"), species)
+
+
+starwars %>%
+select(-(hair_color:gender),-(films:starships)) %>%
+filter(homeworld=="Tatooine") %>%
+arrange(desc(species))
+
+```
+
+## Merging Data sets
+
+
+# Week 4
+
+## Editing text variables
+
+`tolower()`
+`srtsplit()`
+`sub()` and `gsub()` (sub just replaces the first instance)
+`grep()` and `grepl()`
+`nchar()`
+`substr()`
+`paste()` and `paste0()`
+`str_trim()`
+
+Text in data sets:  
+* Names of variables should be
+    + all lowercase when possible
+    + descriptive
+    + unique
+    + free of underscores, dots, or white spaces
+* Variables with character values
+    + usually should be factor variables
+    + descriptive names (instead of 0 and 1 etc.)
+
+## Regular Expressions
+
+Think of regular expressions as a combination of literals (words) and metacharacters
+metacharacters are ways to express:
+* whitespace word boundaries
+* beginning and end of the line
+* sets of literals
+* alternatives ("war" or "peace")
+
+^      represents the beginning of the line
+$      represents the end of the line
+[]     any set of characters
+[^]    match any characters not in the indicated classes
+.      any possible character
+|      "OR" combines two expressions (subexpressions called *alternatives*)
+()?    indicated expression is optional
+*      repeat any number of times (including none)
++      at least one of the item
+{m,n}  Interval qualifier, specify the min(m) and max(n) number of matches
+{m}    Exactly m matches
+{m,}   at least m matches
+
+**Examples**
+^i think == start of a line begins with "i think"
+morning$ == "morning" at end of the line
+[0-9][a-zA-Z]  == any number followed by any leter Capitalzed or lowercase
+[^?.]$  ==  Line that ends in anything other than period or question mark
+[Gg]eorge( [Ww]\.)? [Bb]ush == george bush capitalized or lc w/ or w/o "W."
+(.*) == find anything in parens (anything, any number of times)
+[Bb]ush( +[^ ]+ +){1,5} debate == bush and debate separated by 1-5 words

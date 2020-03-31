@@ -1,0 +1,473 @@
+---
+title: "R Programming Notes"
+author: "Nathan W. Van Bibber"
+date: "1/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+
+# Functions to Know as Learning R #############################################
+
+## Packages ===================================================================
+
+```{r}
+strinstalled.packages() #check what packages are installed
+library()
+old.packages() #check what packages need to update
+```
+
+## Session Info and Help ======================================================
+```{r}
+version
+sessionInfo()
+help() # shortcut is to just use ? at start of line
+help.search("") # searches through R's documentation (?? is shortcut)
+help(package = 'ggplot2')
+browseVignettes('ggplot2')
+
+str() #displays the internal structure of any R object
+example() # runs code from Examples section of Help
+
+vector('numeric', length = 10) #creates vector (0 is default value)
+```
+
+### Ways to create a matrix: --------------------------------------------------
+```{r}
+m1 <- matrix(1:6, nrow = 2,ncol = 3) #filled collumn-wise
+m2 <- 1:10
+dim(m2) <- c(2,5)
+x4 <- 1:3
+y4 <- 10:12
+cbind(x4,y4)
+rbind(x4,y4)
+```
+
+
+### Reading tabular data  -----------------------------------------------------
+Read the help page for `read.table`. 
+**Memorize!** - allows you to optimize how to read large datasets
+
+```{r}
+?read.table
+```
+ 
+Eg. optimize: 
+    * comment.char: set to empty string "" if no comments in file  
+    * nrows: for large files pre-set to slightly larger number than needed  
+    * colClasses: specifying instead of using default can make 2x faster!  
+        + Must know the class of each column (see example below)
+        
+```{r}
+initial <- read.table("datatable.txt", nrows = 100)
+classes <- sapply(initial, class)
+tabAll <- read.table("datatable.txt", colClasses = classes)
+```
+        
+How much memory needed to read in data? Make sure less than RAM available!
+$ RAM = 2 * ((#row * #col * 8bytes)/(2^30 bytes/GB))$
+    (double to account for overhead in reading data in)
+Know your: OS, memory size, 64/32bit, other apps open or users logged in  
+
+## Workspace and Files =======================================================
+
+Before running a program that loops through a series of files you will want to first check to see if each file exists
+```{r}
+getwd()
+dir.create('testdir')
+setwd("testdir")
+file.create("mytest.R")
+list.files()
+file.exists('mytest.R')
+```
+
+ 
+
+file.info('mytest.R')  #use "\$" to grab spec field eg. 
+```{r}
+file.info("mytest.R")$mode
+```
+
+
+Construct file and directory paths that are independent of the operating sys
+```{r}
+dir.create(file.path('testdir2','testdir3'), recursive = TRUE)
+```
+
+
+It is helpful to save the initial settings before you began an analysis and go back to them at the end. -- This trick is often used within functions too.
+
+"Take nothing but results. Leave nothing but assumptions." (what does this even mean?)
+
+
+## Sequences of Numbers =======================================================
+```{r}
+1:20
+?`:`  # `backtick` key is above Tab
+seq(1,20)
+seq(0,10,0.5)
+my_seq <- seq(5,10, length.out = 30)
+length(my_seq)
+1:length(my_seq)
+seq(along = my_seq)
+seq_along(my_seq)
+rep(0, times = 40)
+rep(c(0,1,2), times = 10)
+rep(c(0,1,2), each = 10)
+```
+
+
+## Vectors ====================================================================
+
+```{r}
+num_vect <- c(0.5,55,-10,6)
+tf <- num_vect < 1
+```
+
+
+#logicls
+& = AND
+| = OR
+```{r}
+(3 > 5) & (4 == 4)
+(TRUE == TRUE) | (TRUE == FALSE) # | = OR
+((111 >= 111) | !(TRUE)) & ((4 + 1) == 5)
+```
+
+
+# character vectors
+```{r}
+my_char <- c("My","name","is")
+paste(my_char, collapse = " ")
+my_name <- c(my_char, "Nathan")
+paste(my_name, collapse = " ")
+paste('Hello','world!', sep = ' ')
+paste(1:3,c('X','Y','Z'), sep = "")
+```
+
+
+## Missing Values =============================================================
+
+NA is used to represent any value that is 'not available' or 'missing'
+
+NA is not a value, it is placeholder for a quantity that is not available. Therefore the logical expressions will not work as expected!!
+
+R represents TRUE as 1 and FALSE as 0 so... sum of a bunch of TRUEs and FALSEs = total number of TRUEs.
+
+
+```{r}
+x <- c(44, NA, 5, NA)
+x * 3
+
+# take a random sample of numbers and NA's
+y <- rnorm(1000)
+z <- rep(NA, 1000)
+
+my_data <- sample(c(y,z), 100)
+my_na <- is.na(my_data)
+sum(my_na) # counts num of TRUE's ie. # NA values
+
+any(is.na(my_data))  
+
+# to quickly replace null values with average value of col
+mtcars$mpg[is.na(mtcars$mpg)] <- mean(mtcars$mpg) # but no na in mtcars dataset
+
+# use subsetting to remove missing values from my_data
+my_data[!my_na]
+```
+
+
+NaN stands for "not a number"
+```{r}
+0/0  #NaN
+Inf - Inf  #NaN
+```
+
+
+## Subsetting Vectors ========================================================
+
+To select a subset of elements use an 'index vector' in [] after vname
+4 diff flavors of index vectors: logical, (+ or -)integers, character strings
+
+```{r}
+x[1:10]
+x[!is.na(x)]
+x[!is.na(x) & x > 0]
+x[c(3,5,7)]
+x[-c(2,10)] # all except index 2 and index 10 == x[c(-2,-10)]
+```
+
+
+# create a vector with named elements
+```{r}
+vect <- c(foo = 11, bar = 2, norf = NA)
+vect2 <- c(11,2,NA)
+names(vect2) <- c("foo", "bar", "norf") # names can be added after the fact
+identical(vect,vect2)
+vect2["bar"]
+vect[c("foo", "bar")]
+```
+
+
+## Matrices and Data Frames  ==================================================
+
+```{r}
+my_vector <-  1:20
+dim(my_vector)
+length(my_vector)
+dim(my_vector) <- c(4,5)
+dim(my_vector)
+attributes(my_vector)
+class(my_vector)
+my_data <- data.frame(patients, my_matrix)
+cnames <- c("patient", "age", "weight", "bp", "rating", "test")
+colnames(my_data) <- cnames
+
+good <- complete.cases()
+subset()
+order()
+
+str() # alternative to summary() - compact and good for lists
+```
+
+## Scoping Rules ==============================================================
+
+R uses lexical scoping for free variables
+* the values of free variables are searched for in the environment in which the function was *defined*.
+    + Typically, a function is defined in the global environment so that the values of free variables are found in the user's workspace
+* However, R can have functions defined *inside* other functions!
+
+```{r}
+# this function returns another function as its value!
+make.power <- function(n) {
+    pow <- function(x) {
+        x^n
+    }
+    pow
+}
+
+# make.power() has the ability to creat many other functions
+# here we'll make functions to cube and square a given number
+cube <- make.power(3)
+square <- make.power(2)
+cube(4)
+square(4)
+
+# look at the environment in which the function was defined
+ls(environment(cube))
+get("n", environment(cube)) # n = 3
+
+ls(environment(square))
+get("n", environment(square)) # n = 2
+```
+
+
+## Dates and Times  ===========================================================
+Dates use the Date class
+Times use POSIXct and POSIXlt classes
+
+```{r}
+strptime()
+as.Date()
+as.POSIXct()
+as.POSIXlt()
+```
+
+
+## Logicals ===================================================================
+
+```{r}
+identical()
+isTRUE()
+xor()  # exclusive OR (T | T --> FALSE)
+which()
+any()
+all()
+```
+
+
+## Loop Functions =============================================================
+Loop functions are some of the most powerful functions in the R language. Execute a loops over a set of objects in an easy, compact way.
+`lapply()`  loop over a list and evaluate a function on each element
+    + always returns a list regardless of the class of the input
+`sapply()`  same as lapply but tries to simplify the result as a vector or martix
+`apply()`   apply a function over the margin of an array
+    + `rowSums`, `rowMeans`, `colSums`, `colMeans` optimized shortcut functions
+`tapply()`  apply a function over a vector grouping by subsets or factors
+`mapply()`  multivariate version of lapply
+    + apply a function with multiple sets of argumets from different lists
+
+`split()`   splits objects into sub-pieces - useful to use with lapply
+
+
+```{r}
+lapply
+x <- list(a = 1:5, b = c(7,10,13))
+lapply(x, mean)
+```
+
+These functions make heavy use of *anonymous* functions (functions that generated on the fly and don't have names)
+
+```{r}
+x <- list(a = matrix(paste("a", 1:4, sep = ""), 2, 2), b = matrix(paste("b", 1:6, sep = ""), 3, 2))
+x
+
+# anonymous function to extract the first column of each matrix
+# function only exists within the context of lapply then goes away
+lapply(x, function(elt) elt[,1])
+```
+
+`sapply` will simplify the result into a vestor or matrix if possible
+```{r}
+x <- list(a = 1:4, b = rnorm(10), c = rnorm(20, 1), d = rnorm(100, 5))
+l <- lapply(x, mean)
+v <- sapply(x, mean)
+l
+v
+class(l)
+class(v)
+is.vector(v)
+```
+
+Use `mapply` to calculate the mean of Ozone, Solar R., Wind, and Temp for each month
+```{r}
+library(datasets)
+head(airquality)
+
+# split the airquality data by month (note: only May-Sept in dataset)
+s <- split(airquality, airquality$Month)
+
+# apply the mean function to each of the months
+lapply(s, function(x) colMeans(x[, c("Ozone", "Solar.R", "Wind", "Temp")], na.rm = TRUE))
+
+sapply(s, function(x) colMeans(x[, c("Ozone", "Solar.R", "Wind", "Temp")], na.rm = TRUE))
+```
+
+
+Splitting over more than one level
+```{r}
+x <- rnorm(10)
+f1 <- gl(2, 5) #, labels = c("male", "female"))
+f2 <- gl(5, 2) #, labels = c("red","green","blue","white","black"))
+f1
+f2
+interaction(f1, f2)
+
+# split will automatically call the interaction function btw 2 elements of list
+str(split(x, list(f1, f2), drop = TRUE))
+```
+
+
+## Debugging ===============================================================
+Three main indications of a problem: `message`, `warning`, `error`
+    * Only `error` is fatal (will stop execution)
+
+Questions to ask yourself when something goes wrong:
+    * What was your input?  
+    * How did you call the function?  
+    * What were you expecting?  
+    * What did you get?  
+        + Output messages or other results?  
+        + How does what you got differ from what you were expecting?  
+    * Were your expectations correct in the first place?  
+    * Can you reproduce the problem (exactly)?  
+        + Important for getting help!
+
+```{r}
+traceback() # Prints out fn call stack
+recover()   # error handler: stops execution at error and opens fn call stack
+
+debug()     # allows you step through a fn 1 line at a time
+browser()   # suspends execution and puts fn in "debug" mode
+trace()     # insert debugging code into fn w/o editing fn itself
+
+print()
+cat()
+```
+
+## str() - The most important fn in all of R =================================
+Stands for 'structure' and will display the internal structure of any R object. Particularly well suited for displaying large lists (that may contain other lists). - Goal is to answer "What is this object?"
+
+```{r}
+str(lm)
+str(ls)
+
+library(datasets)
+str(airquality)
+```
+
+### Simulations ---------------------------------------------------------------
+When generating random numbers, setting the random number seed endures reproducibility (computer generated numbers appear random but really are not).
+
+```{r}
+set.seed(5) # pick any number you want
+rnorm(10)
+
+# to reproduce the same numbers later just reset the seed
+set.seed(5) # use same number as before
+rnorm(10)
+```
+
+
+### R Profiler ----------------------------------------------------------------
+
+Profiling is a systematic way to examine how much time is spent in different parts of a program. Useful when trying to optimize code (say when running program 1000s of times).
+
+Design code first, then optimize! 
+
+Profiling is a way to collect data for a performance analysis.
+
+#### system.time()
+`system.time()`
+* Computes the time, in seconds, needed to execute an expression  
+    + or time until error occured  
+
+##### User time vs. Elapsed time
+**user time** - time charged to the CPU's for the expression
+**elapsed time** - "wall clock" time (ie. time you experience)
+
+* usually both are relatively equal  
+* User time < elapsed time --> CPU spends a lot of time waiting  
+* Elapsed time < user time --> multiple cores/processors (parallel processing)  
+    + **parallel** package  
+    + Multi-threaded BLAS libraries  
+* time longer expressions by wrapping the whole thing in curley braces{}
+```{r}
+# Elapsed time > user time
+system.time(readLines("http://www.jhsph.edu"))
+#CPU spends most of the time waiting for the connection to open
+
+system.time({
+    n <- 1000
+    r <- numeric(n)
+    for (i in 1:n) {
+        x <- rnorm(n)
+        r[i] <- mean(x)
+    }
+})
+```
+
+#### Rprof()
+`Rprof()` starts the R profiler - keeps track of the function call stack at regularly sampled intervals and tabulates time spent in each function  
+* default interval is 0.02 sec  
+* if function runs faster than that it won't be in the call stack  
+
+Notes: 
+1. R must be compiled with profiler support (but this is usually the case).  
+2. Don't use system.time() and Rprof() together - either one or the other  
+3. Break your code into functions to get info on where most time is spent  
+4. C or Fortran code is not profiled   
+
+`summaryRprof()` summarizes the output form Rproof() in a more readable format  
+* Two methods for normalizing data  
+    + `by.total` divides the time spent in each function by the total run time
+    + `by.self` does the same, but first subtracts out time spent in functions above in the call stack  (most of the computation usually done in lower level functions that the top level function calls)  
+        - this is probably the more useful  

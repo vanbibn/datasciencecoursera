@@ -1,0 +1,19 @@
+---
+title: "ReproducibleResearch"
+author: "Nathan W. Van Bibber"
+date: "3/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Week 1  
+
+## Concepts and Ideas  
+It is difficult to reproduce entire studies, but can't do nothing.
+Reproducibility bridges this gap.  
+
+* validation of data analysis  
+  + complex statistical methods subjected to intense scrutiny  
