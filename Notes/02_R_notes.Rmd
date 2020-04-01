@@ -366,6 +366,31 @@ str(split(x, list(f1, f2), drop = TRUE))
 ```
 
 
+Comparing results from `sapply` + *anonymous* function vs. tidyverst piping
+* both arrive at similar results
+    + sapply more condensed and faster to type but less intuitive
+    + tidyverse easier to read and understand but longer to compose
+```{r}
+sap <- sapply(s, function(x) {
+    colMeans(x[, c("Ozone", "Solar.R", "Wind")], na.rm = T)
+})
+
+sap
+class(sap)
+
+
+
+airquality %>% 
+    select(Month, Ozone, Solar.R, Wind) %>% 
+    group_by(Month) %>%
+    summarise(Ozone = mean(Ozone, na.rm = T),
+              Solar.R = mean(Solar.R, na.rm = T),
+              Wind = mean(Wind, na.rm = T))
+
+t(sap)
+```
+
+
 ## Debugging ===============================================================
 Three main indications of a problem: `message`, `warning`, `error`
     * Only `error` is fatal (will stop execution)
