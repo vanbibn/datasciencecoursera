@@ -7,15 +7,11 @@ output:
     keep_md: yes
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 # Week 1 
 
-## Graphs
-
-
+##
 
 ## Graphics Devices
 
@@ -29,11 +25,14 @@ Two ways to create a plot:
    C. Annotate if necessary  
    D. **Important!** Explicitly *close* graphics device with `dev.off()`  
 
-```{r}
+
+```r
 library(datasets)
 with(faithful, plot(eruptions, waiting)) ## make plot appear on the screen
 title(main = "Old Faithful Geyser data")  ## Annotate with a title
 ```
+
+![](04_ExploratoryDataAnalysis_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
 
 Two basic types of file  
@@ -49,7 +48,6 @@ Two basic types of file
    - bmp  
 
 
-***
 
 # Week 2
 
@@ -77,11 +75,21 @@ The Lattice plotting system is implemented using the following packages:
    - `levelplot`. `contourplot` for plotting "image" data 
 * *grid* - the *lattice* package builds ontop of *grid* (implements a different graphing system independent of "base" system)  
 
-```{r}
+
+```r
 library(lattice)
+```
+
+```
+## Warning: package 'lattice' was built under R version 3.6.3
+```
+
+```r
 library(datasets)
 ## simple scatterplot
 xyplot(Ozone ~ Wind, data = airquality)
 ```
+
+![](04_ExploratoryDataAnalysis_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 END
