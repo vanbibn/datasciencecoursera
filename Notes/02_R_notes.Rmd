@@ -408,17 +408,23 @@ Questions to ask yourself when something goes wrong:
     * Can you reproduce the problem (exactly)?  
         + Important for getting help!
 
-```{r}
-traceback() # Prints out fn call stack
-recover()   # error handler: stops execution at error and opens fn call stack
+### Debugging Tools
 
-debug()     # allows you step through a fn 1 line at a time
-browser()   # suspends execution and puts fn in "debug" mode
-trace()     # insert debugging code into fn w/o editing fn itself
+Interactive debugging tools (s)
 
-print()
-cat()
-```
+`traceback()` # Prints out fn call stack, must call immediately after the error
+`recover()`   # error handler: stops execution at error and opens fn call stack
+
+`debug()`     # allows you step through a fn 1 line at a time, "n" advances to next line
+`browser()`   # suspends execution and puts fn in "debug" mode
+`trace()`     # insert debugging code into fn w/o editing fn itself
+
+`print()`     # have to go back and delete when done debugging
+`cat()`
+
+
+
+# Week 4
 
 ## str() - The most important fn in all of R =================================
 Stands for 'structure' and will display the internal structure of any R object. Particularly well suited for displaying large lists (that may contain other lists). - Goal is to answer "What is this object?"
@@ -431,7 +437,7 @@ library(datasets)
 str(airquality)
 ```
 
-### Simulations ---------------------------------------------------------------
+## Simulations ---------------------------------------------------------------
 When generating random numbers, setting the random number seed endures reproducibility (computer generated numbers appear random but really are not).
 
 ```{r}
@@ -444,7 +450,7 @@ rnorm(10)
 ```
 
 
-### R Profiler ----------------------------------------------------------------
+## R Profiler ----------------------------------------------------------------
 
 Profiling is a systematic way to examine how much time is spent in different parts of a program. Useful when trying to optimize code (say when running program 1000s of times).
 
@@ -452,12 +458,12 @@ Design code first, then optimize!
 
 Profiling is a way to collect data for a performance analysis.
 
-#### system.time()
+### system.time()
 `system.time()`
 * Computes the time, in seconds, needed to execute an expression  
     + or time until error occured  
 
-##### User time vs. Elapsed time
+#### User time vs. Elapsed time
 **user time** - time charged to the CPU's for the expression
 **elapsed time** - "wall clock" time (ie. time you experience)
 
@@ -482,7 +488,7 @@ system.time({
 })
 ```
 
-#### Rprof()
+### Rprof()
 `Rprof()` starts the R profiler - keeps track of the function call stack at regularly sampled intervals and tabulates time spent in each function  
 * default interval is 0.02 sec  
 * if function runs faster than that it won't be in the call stack  
