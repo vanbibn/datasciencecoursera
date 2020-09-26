@@ -47,14 +47,106 @@ First steps: Install and load `shiny` package
 library(shiny)
 ```
 
-```
-## Warning: package 'shiny' was built under R version 3.6.3
-```
-
 A shiny project is a directory containing at least 2 files:
 
 1. **ui.R** -- user interface, controls how your app looks
 2. **server.R** -- controls what your app does
+
+Start each Shiny app with the following template
+
+```r
+library(shiny)
+ui <- fluidPage("Hello World")
+
+server <- function(input, output) {}
+
+shinyApp(ui, server) 
+```
+
+### Design the app with ui
+
+Add elements as arguments to `fluidPage()`
+
+* `*Input()` - create reactive inputs (eg. slider bars)
+* `*Output()` - create reactive results (eg.  plots)
+
+### Use the server function to assemble inputs and outputs
+
+> Reactivity automatically occurs whenever you use an input value to render an output object
+
+**3 rules for the server function**
+
+1. *Save* output objects to `output$...`
+2. *Build* objects to display with `render*()`
+    * plot, table, image, text, etc.
+3. *Access* input values with `input$`
+
+
+
+```r
+library(shiny)
+ui <- fluidPage(
+    sliderInput(inputId = "num", 
+        label = "Pick a value for N", 
+        value = 50, min = 20, max = 100),
+    plotOutput(outputId = "hist")
+)
+
+server <- function(input, output) {
+    output$hist <- renderPlot({
+        title <- "N random normal values"
+        hist(rnorm(input$num), main = title)
+    })
+}
+
+shinyApp(ui, server)
+```
+
+### Reactivity
+
+#### Reactive values
+
+* Reactive values act as the data streams that folw through your app.
+* The **input** list is a list of reactive values. (show the current state of the inputs)
+* **Note:** you can only call a reactive value from a function that is designed to work with one (i.e. a reactive function)
+
+#### Reactive functions
+
+1. Use a code chunk to build (and rebuild) an object
+    * What code will the function use?
+2. Object will respond to changes in a set of reactive values
+    * Which reactive values will the object respond to?
+    
+#### Reactivity as a 2-step process
+
+1. Reactive values (eg. `input$num`) notify the functions that use them when they have changed (aka invalidating) 
+2. Objects created by reactive functions respond as appropriate (eg. re-run code). 
+    
+#### Reactive toolkit (7 indispendible functions)
+
+1. `render*()`
+    * Builds reactive output *object to display* in UI
+    * Takes one argument - {a block of code} surrounded by curley braces
+    * Always save results to `output$`
+2. `reactive()`
+    * builds a reactive *object to use* (reactive expression)
+        - knows whether it is invalid or valid
+        - result is saved (cached) in memory
+    * result available to use later on in other code
+        - technically a function so must call with parens (eg. `data()`)
+    * useful for modularizing your apps
+3. `isolate()`
+    * makes a non-reactive object
+        - prevent reactions 
+        - object will **not** respond to *any reactive value* in the code
+    * use to treat reactive values like normal R values
+4. `observeEvent()`
+    * Triggers code to run on server
+5. `eventReactive()`
+    * a reactive expression that only responds to specific values
+
+
+
 
 
 ## Shiny Gadgets
